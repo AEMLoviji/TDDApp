@@ -1,54 +1,81 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Web.Mvc;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using TDDApp;
 using TDDApp.Controllers;
+using TDDApp.Models;
+using TDDApp.Repositories;
 
 namespace TDDApp.Tests.Controllers
 {
     [TestClass]
     public class HomeControllerTest
     {
+
         [TestMethod]
-        public void Index()
+        public void IndexViewModelIsNotNull()
         {
             // Arrange
-            HomeController controller = new HomeController();
+            var mock = new Mock<IPersonRepository>();
+            mock.Setup(m => m.GetList()).Returns(new List<Person>());
+            HomeController controller = new HomeController(mock.Object);
 
             // Act
             ViewResult result = controller.Index() as ViewResult;
 
             // Assert
-            Assert.IsNotNull(result);
+            Assert.IsNotNull(result.Model);
         }
 
         [TestMethod]
-        public void About()
+        public void IndexViewBagMessage()
         {
             // Arrange
-            HomeController controller = new HomeController();
+            var mock = new Mock<IPersonRepository>();
+            mock.Setup(a => a.GetList()).Returns(new List<Person>() { new Person() });
+            HomeController controller = new HomeController(mock.Object);
+            string expected = "1 Person object in database.";
 
             // Act
-            ViewResult result = controller.About() as ViewResult;
+            ViewResult result = controller.Index() as ViewResult;
+            string actual = result.ViewBag.Message as string;
 
             // Assert
-            Assert.AreEqual("Your application description page.", result.ViewBag.Message);
+            Assert.AreEqual(expected, actual);
         }
 
         [TestMethod]
-        public void Contact()
+        public void CreatePostAction_RedirectToIndexView()
         {
             // Arrange
-            HomeController controller = new HomeController();
+            var mock = new Mock<IPersonRepository>();
+            HomeController controller = new HomeController(mock.Object);
+            Person person = new Person();
+            string expected = "Index";
 
             // Act
-            ViewResult result = controller.Contact() as ViewResult;
+            RedirectToRouteResult result = controller.Create(person) as RedirectToRouteResult;
 
             // Assert
             Assert.IsNotNull(result);
+            Assert.AreEqual(expected, result.RouteValues["action"]);
         }
+
+        [TestMethod]
+        public void CreatePostAction_SaveModel()
+        {
+            // Arrange
+            var mock = new Mock<IPersonRepository>();
+            HomeController controller = new HomeController(mock.Object);
+            Person person = new Person();
+
+            // Act
+            RedirectToRouteResult result = controller.Create(person) as RedirectToRouteResult;
+
+            // Assert
+            mock.Verify(a => a.Create(person));
+            mock.Verify(a => a.Save());
+        }
+
     }
 }

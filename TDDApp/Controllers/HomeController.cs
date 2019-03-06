@@ -3,28 +3,53 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using TDDApp.Models;
+using TDDApp.Repositories;
 
 namespace TDDApp.Controllers
 {
     public class HomeController : Controller
     {
+        private readonly IPersonRepository _repository;
+
+        public HomeController(IPersonRepository repository)
+        {
+            _repository = repository;
+        }
+
         public ActionResult Index()
         {
+            var model = _repository.GetList();
+            if (model.Any())
+            {
+                ViewBag.Message = $"{model.Count} Person object in database.";
+            }
+
+            return View(model);
+        }
+
+        public ActionResult Create()
+        {
             return View();
         }
 
-        public ActionResult About()
+        [HttpPost]
+        public ActionResult Create(Person person)
         {
-            ViewBag.Message = "Your application description page.";
+            if (ModelState.IsValid)
+            {
+                _repository.Create(person);
+                _repository.Save();
+                return RedirectToAction("Index");
+            }
 
-            return View();
+            return View("Create");
         }
 
-        public ActionResult Contact()
+        protected override void Dispose(bool disposing)
         {
-            ViewBag.Message = "Your contact page.";
-
-            return View();
+            _repository.Dispose();
+            base.Dispose(disposing);
         }
     }
 }
